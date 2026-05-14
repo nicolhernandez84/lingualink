@@ -1,13 +1,13 @@
 const sql = require('mssql');
 
 const config = {
-  user: 'sa',
-  password: '1234',
-  server: 'localhost',
-  port: 1433,
-  database: 'lingualink',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  port: Number(process.env.DB_PORT || 1433),
+  database: process.env.DB_DATABASE,
   options: {
-    encrypt: false,
+    encrypt: true,
     trustServerCertificate: true
   }
 };
@@ -18,7 +18,7 @@ async function getConnection() {
   if (!poolPromise) {
     poolPromise = sql.connect(config)
       .then(pool => {
-        console.log('Conectado a SQL Server con usuario sa');
+        console.log('Conectado a SQL Server');
         return pool;
       })
       .catch(error => {
