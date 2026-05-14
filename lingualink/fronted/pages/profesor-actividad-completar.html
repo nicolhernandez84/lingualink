@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete activity</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 via-white to-sky-100">
+  <main class="max-w-7xl mx-auto px-6 py-12">
+    <div class="flex justify-between items-center mb-10">
+      <a href="/fronted/pages/profesor.html" class="brand text-3xl text-blue-700">
+        Lingua<span class="text-red-500">Link</span>
+      </a>
+
+      <div class="flex gap-5 items-center">
+        <a href="/fronted/pages/profesor.html" class="nav-link">Panel</a>
+        <button onclick="logout()" class="font-bold text-red-500">Log out</button>
+      </div>
+    </div>
+
+    <section class="activity-hero-complete p-10 mb-12">
+  <div class="flex flex-col md:flex-row md:items-center gap-8">
+
+    <div class="activity-hero-icon-complete">
+      📝
+    </div>
+
+    <div>
+      <span class="activity-label-complete">
+        Create activity
+      </span>
+
+      <h1 class="text-4xl md:text-5xl font-extrabold mt-4 text-slate-900">
+        Complete activity
+      </h1>
+
+      <p class="text-slate-500 mt-4 max-w-3xl">
+        Select a vocabulary list to publish an activity where the student completes English words using clues in Spanish.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+    <section id="teacher-complete-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+
+  <section id="teacher-published-activities" class="grid gap-6  mt-20 "></section>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script>
+  protect('teacher');
+  loadTeacherCompletePage();
+  loadTeacherPublishedActivities('complete');
+</script>
+</body>
+
+</html>

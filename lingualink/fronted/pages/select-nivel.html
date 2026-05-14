@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select level</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-100">
+
+  <main class="max-w-5xl mx-auto px-6 py-12">
+
+    <div class="flex justify-between items-center mb-10">
+      <div class="brand text-3xl text-blue-700">
+        Lingua<span class="text-red-500">Link</span>
+      </div>
+
+      <button onclick="logout()" class="font-bold text-red-500">
+        Log out
+      </button>
+    </div>
+
+    <div class="text-center mb-12">
+      <h1 class="text-5xl font-extrabold">
+        Select your level
+      </h1>
+
+      <p class="text-slate-500 mt-3">
+        The system will load the corresponding vocabularies.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <button onclick="selectLevel('A1')" class="level-card card p-10 text-center">
+        <div class="text-7xl font-extrabold text-red-500">A1</div>
+        <p class="mt-4 font-semibold">Basic</p>
+      </button>
+
+      <button onclick="selectLevel('A2')" class="level-card card p-10 text-center">
+        <div class="text-7xl font-extrabold text-red-500">A2</div>
+        <p class="mt-4 font-semibold">Intermediate</p>
+      </button>
+
+      <button onclick="selectLevel('B1')" class="level-card card p-10 text-center">
+        <div class="text-7xl font-extrabold text-red-500">B1</div>
+        <p class="mt-4 font-semibold">Advanced</p>
+      </button>
+
+    </div>
+
+  </main>
+
+  <script src="../js/app.js"></script>
+
+  <script>
+    protect('student')
+  </script>
+
+</body>
+</html>

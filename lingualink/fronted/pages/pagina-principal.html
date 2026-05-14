@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinguaLink</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="glass sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="brand text-3xl text-blue-700">Lingua<span class="text-red-500">Link</span></div>
+      <div class="flex items-center gap-6">
+        <a class="nav-link active" href="#">Inicio</a>
+        <a class="btn-primary px-6 py-3 rounded-full font-bold" href="/fronted/pages/login.html">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-100">
+    <section class="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="inline-flex bg-blue-100 text-blue-700 px-4 py-2 rounded-full font-bold mb-6">Learn English by levels</span>
+        <h1 class="text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-950 leading-tight">Clear, visual and organized vocabulary.</h1>
+        <p class="text-xl text-slate-600 mt-6 max-w-xl">LinguaLink connects students and teachers with vocabularies by level, topic, and words in English/Spanish.</p>
+        <div class="mt-9 flex gap-4">
+          <a href="#niveles" class="btn-primary px-8 py-4 rounded-2xl font-bold">View levels</a>
+        </div>
+      </div>
+      <div class="relative">
+        <div class="card p-8 floating">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 rounded-3xl p-6 text-center"><div class="text-5xl">📚</div><p class="font-bold mt-3">Vocabularies</p></div>
+            <div class="bg-red-50 rounded-3xl p-6 text-center"><div class="text-5xl">🎧</div><p class="font-bold mt-3">Audio</p></div>
+            <div class="bg-green-50 rounded-3xl p-6 text-center"><div class="text-5xl">🎓</div><p class="font-bold mt-3">Teacher</p></div>
+            <div class="bg-purple-50 rounded-3xl p-6 text-center"><div class="text-5xl">🧑‍🎓</div><p class="font-bold mt-3">Student</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="niveles" class="max-w-7xl mx-auto px-6 pb-24">
+      <h2 class="text-4xl font-extrabold text-center mb-10">Available levels</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="level-card card p-12 w-[350px] text-center"><h3 class="text-6xl font-extrabold text-red-500">A1</h3><p class="mt-4 text-gray-600 mb-6">(Basic)
+           <ul class="text-left space-y-2 text-sm">
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Numbers</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Colors</li>
+             <li class="flex items-center gap-2"><span class="text-green-500">•</span>Family</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Basic objects</li>
+             <li class="flex items-center gap-2"><span class="text-green-500">•</span> clothes</li>
+          </ul>
+          </p></div>
+        <div class="level-card card p-12 w-[350px] text-center"><h3 class="text-6xl font-extrabold text-red-500">A2</h3><p class="mt-4 text-gray-600 mb-6">(Intermediate).
+          <ul class="text-left space-y-2 text-sm">
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Food</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Place in the city</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Professions</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Parts of the body</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Animals</li>
+          </ul>
+        </p></div>
+        <div class="level-card card p-12 w-[350px] text-center"><h3 class="text-6xl font-extrabold text-red-500">B1</h3><p class="mt-4 text-gray-600 mb-6">(Advanced)</p>
+          <ul class="text-left space-y-2 text-sm">
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Kitchen parts</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Countries</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Marine animals</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Culture</li>
+            <li class="flex items-center gap-2"><span class="text-green-500">•</span> Travel</li>
+          </ul>
+        </p></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

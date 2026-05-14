@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor's panel</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 via-white to-sky-100">
+
+  <main class="max-w-7xl mx-auto px-6 py-12">
+
+    <!-- NAV SUPERIOR -->
+    <div class="flex justify-between items-center mb-10">
+      <a href="/fronted/pages/profesor.html" class="brand text-3xl text-blue-700">
+        Lingua<span class="text-red-500">Link</span>
+      </a>
+
+      <button onclick="logout()" class="font-bold text-red-500">
+        log out
+      </button>
+    </div>
+
+    <!-- HERO PRINCIPAL -->
+    <section class="dashboard-hero p-10 mb-10">
+      <div class="dashboard-hero-content">
+
+        <span class="dashboard-label">
+          Teaching panel
+        </span>
+
+        <h1 class="text-4xl md:text-5xl font-extrabold mt-5 text-slate-900">
+          Professor's panel
+        </h1>
+
+        <div class="dashboard-line"></div>
+
+        <p class="text-slate-500 mt-5 max-w-3xl">
+          From here you can create vocabularies, consult them, modify them and publish activities for your students.
+        </p>
+
+        <!-- OPCIONES DEL PANEL -->
+        <div class="dashboard-grid">
+
+          <a href="/fronted/pages/profesor-crear-vocabulario.html" class="dashboard-card dashboard-green">
+            <div class="dashboard-card-icon">
+              ➕
+            </div>
+
+            <h3>Create vocabulary</h3>
+
+            <p>
+              Add new words with custom level, theme, emoji, and color.
+            </p>
+          </a>
+
+          <a href="/fronted/pages/profesor-ver-vocabularios.html" class="dashboard-card dashboard-blue">
+            <div class="dashboard-card-icon">
+              📚
+            </div>
+
+            <h3>View vocabularies</h3>
+
+            <p>
+              Consult the created vocabularies, modify them or delete them.
+            </p>
+          </a>
+
+          <a href="/fronted/pages/profesor-actividad-completar.html" class="dashboard-card dashboard-purple">
+            <div class="dashboard-card-icon">
+              📝
+            </div>
+
+            <h3>Complete activity</h3>
+
+            <p>
+              Publish exercises where the student completes words in English.
+            </p>
+          </a>
+
+          <a href="/fronted/pages/profesor-actividad-relacionar.html" class="dashboard-card dashboard-red">
+            <div class="dashboard-card-icon">
+              🔗
+            </div>
+
+            <h3>Relate activity</h3>
+
+            <p>
+              Publish exercises to relate English words to Spanish.
+            </p>
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="../js/app.js"></script>
+
+  <script>
+    protect('teacher');
+  </script>
+
+</body>
+
+</html>

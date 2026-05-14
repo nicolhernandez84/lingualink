@@ -1,0 +1,11 @@
+{
+  "name": "lingualink-root",
+  "version": "1.0.0",
+  "scripts": {
+    "install-backend": "cd backend && npm install",
+    "start": "cd backend && npm start"
+  },
+  "dependencies": {
+    "multer": "^2.1.1"
+  }
+}
