@@ -1,7 +1,7 @@
-const { getConnection, sql } = require('../config/db');
+const pool = require('../config/db');
 
-class VocabularyModel {
-  async getByLevel(level) {
+class VocabularyModel {}
+  /* async getByLevel(level) {
     const pool = await getConnection();
 
     const result = await pool.request()
@@ -256,7 +256,6 @@ class VocabularyModel {
       await transaction.rollback();
       throw error;
     }
-  }
-}
+  } */
 
 module.exports = new VocabularyModel();
