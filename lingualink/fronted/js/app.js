@@ -1850,119 +1850,176 @@ function renderStudentCompleteActivity(activity, words) {
   window.studentCompleteAnswers = words.map(word => word.english);
 
   box.innerHTML = `
-    <section 
-      class="card p-10 mb-8 text-white"
-      style="background: ${gradient};"
-    >
-      <div class="text-6xl">📝</div>
-      <h1 class="text-4xl font-extrabold mt-4">${activity.title}</h1>
-      <p class="text-white/90 mt-3">${activity.instructions || ''}</p>
-      <p class="font-bold text-white mt-3">Vocabulario: ${activity.vocabulary_name}</p>
-    </section>
+    <div class="card p-8">
+      <h1 class="text-3xl font-black text-slate-800 mb-3">
+        ${activity.title}
+      </h1>
 
-    <section class="grid md:grid-cols-2 gap-5">
-      ${words.map((word, index) => `
-        <div class="card p-6">
-          <p class="text-sm font-bold text-slate-400 mb-2">Pista en español</p>
-          <p class="text-xl font-bold text-slate-900 mb-4">${word.spanish}</p>
+      <p class="text-slate-500 mb-2">
+        ${activity.instructions || ''}
+      </p>
 
-          <p 
-            class="text-3xl font-extrabold tracking-widest mb-4"
-            style="background: ${gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-          >
-            ${hideStudentWord(word.english)}
-          </p>
+      <p class="font-bold text-blue-700 mb-8">
+        Vocabulario: ${activity.vocabulary_name}
+      </p>
 
-          <input 
-            data-student-complete-index="${index}"
-            class="input w-full"
-            placeholder="Escribe la palabra completa"
-          >
-        </div>
-      `).join('')}
-    </section>
+      <div class="grid gap-5">
+        ${words.map((word, index) => {
+          const audio = String(word.audio || '').replace(/'/g, "\\'");
 
-    <section class="flex flex-wrap gap-4 mt-8">
-    <button 
-    onclick="finishStudentCompleteActivity()" 
-    class="px-6 py-4 rounded-2xl font-bold text-white shadow"
-    style="background: ${gradient};"
-  >
-   End activity
-  </button>
+          return `
+            <div class="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <p class="text-sm font-bold text-slate-400 mb-1">
+                Pista en español
+              </p>
 
-  <button 
-  type="button"
-  onclick="backFromStudentActivity()" 
-  class="px-6 py-4 rounded-2xl bg-slate-100 text-slate-700 font-bold shadow hover:bg-slate-200 transition"
->
-  back
-</button>
+              <h3 class="text-2xl font-black text-slate-800 mb-3">
+                ${word.spanish}
+              </h3>
 
-    <div id="student-result-box" class="hidden"></div>
+              ${
+                word.audio
+                  ? `
+                    <button 
+                      type="button"
+                      onclick="playVocabularyAudio('${audio}')"
+                      class="mb-4 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
+                      🔊 Escuchar audio
+                    </button>
+                  `
+                  : `
+                    <p class="mb-4 text-sm text-slate-400 font-bold">
+                      Sin audio
+                    </p>
+                  `
+              }
+
+              <p class="text-slate-500 mb-3">
+                Completa la palabra:
+              </p>
+
+              <p class="text-xl font-black text-slate-700 mb-3 tracking-widest">
+                ${hideStudentWord(word.english)}
+              </p>
+
+              <input 
+                data-student-complete-index="${index}"
+                type="text"
+                placeholder="Escribe la palabra en inglés"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-100">
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div id="student-result-box"></div>
+
+      <div class="flex gap-4 mt-8">
+        <button 
+          onclick="finishStudentCompleteActivity()"
+          class="px-6 py-3 rounded-2xl text-white font-black shadow-lg"
+          style="background:${gradient}">
+          End activity
+        </button>
+
+        <button 
+          onclick="backFromStudentActivity()"
+          class="px-6 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black">
+          back
+        </button>
+      </div>
+    </div>
   `;
 }
 
 function renderStudentMatchingActivity(activity, words) {
   const box = $('student-activity-box');
   const gradient = getVocabularyGradient(activity.color);
-
   const spanishOptions = shuffleStudentOptions(words.map(word => word.spanish));
+
   window.studentMatchingAnswers = words.map(word => word.spanish);
 
   box.innerHTML = `
-    <section 
-      class="card p-10 mb-8 text-white"
-      style="background: ${gradient};"
-    >
-      <div class="text-6xl">🔗</div>
-      <h1 class="text-4xl font-extrabold mt-4">${activity.title}</h1>
-      <p class="text-white/90 mt-3">${activity.instructions || ''}</p>
-      <p class="font-bold text-white mt-3">Vocabulario: ${activity.vocabulary_name}</p>
-    </section>
+    <div class="card p-8">
+      <h1 class="text-3xl font-black text-slate-800 mb-3">
+        ${activity.title}
+      </h1>
 
-    <section class="grid gap-5">
-      ${words.map((word, index) => `
-        <div class="card p-6 grid md:grid-cols-2 gap-5 items-center">
-          <div>
-            <p class="text-sm font-bold text-slate-400 mb-2">English word</p>
+      <p class="text-slate-500 mb-2">
+        ${activity.instructions || ''}
+      </p>
 
-            <p 
-              class="text-2xl font-extrabold"
-              style="background: ${gradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-            >
-              ${word.english}
-            </p>
-          </div>
+      <p class="font-bold text-blue-700 mb-8">
+        Vocabulario: ${activity.vocabulary_name}
+      </p>
 
-          <select data-student-match-index="${index}" class="input w-full">
-            <option value="">Select the translation </option>
-            ${spanishOptions.map(option => `
-              <option value="${option}">${option}</option>
-            `).join('')}
-          </select>
-        </div>
-      `).join('')}
-    </section>
+      <div class="grid gap-5">
+        ${words.map((word, index) => {
+          const audio = String(word.audio || '').replace(/'/g, "\\'");
 
-    <section class="flex flex-wrap gap-4 mt-8">
-  <button 
-    onclick="finishStudentMatchingActivity()" 
-    class="px-6 py-4 rounded-2xl font-bold text-white shadow"
-    style="background: ${gradient};"
-  >
-    End activity
-  </button>
+          return `
+            <div class="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <p class="text-sm font-bold text-slate-400 mb-1">
+                Palabra en inglés
+              </p>
 
- <button 
-  type="button"
-  onclick="backFromStudentActivity()" 
-  class="px-6 py-4 rounded-2xl bg-slate-100 text-slate-700 font-bold shadow hover:bg-slate-200 transition"
->
-  back
-</button>
+              <h3 class="text-2xl font-black text-slate-800 mb-3">
+                ${word.english}
+              </h3>
 
-    <div id="student-result-box" class="hidden"></div>
+              ${
+                word.audio
+                  ? `
+                    <button 
+                      type="button"
+                      onclick="playVocabularyAudio('${audio}')"
+                      class="mb-4 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
+                      🔊 Escuchar audio
+                    </button>
+                  `
+                  : `
+                    <p class="mb-4 text-sm text-slate-400 font-bold">
+                      Sin audio
+                    </p>
+                  `
+              }
+
+              <label class="block text-slate-500 font-bold mb-2">
+                Selecciona la traducción
+              </label>
+
+              <select 
+                data-student-match-index="${index}"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-100">
+                <option value="">Seleccionar respuesta</option>
+                ${spanishOptions.map(option => `
+                  <option value="${option}">
+                    ${option}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div id="student-result-box"></div>
+
+      <div class="flex gap-4 mt-8">
+        <button 
+          onclick="finishStudentMatchingActivity()"
+          class="px-6 py-3 rounded-2xl text-white font-black shadow-lg"
+          style="background:${gradient}">
+          Finalizar actividad
+        </button>
+
+        <button 
+          onclick="backFromStudentActivity()"
+          class="px-6 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black">
+          Volver
+        </button>
+      </div>
+    </div>
   `;
 }
 function backFromStudentActivity() {

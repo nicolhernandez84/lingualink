@@ -4,10 +4,11 @@ class ActivityModel {
   async getVocabularyWords(vocabularyId) {
     const result = await db.query(
       `
-      SELECT 
-        w.id,
-        w.english,
-        w.spanish
+     SELECT 
+      w.id,
+      w.english,
+      w.spanish,
+      w.audio
       FROM vocabulary_words w
       INNER JOIN vocabularies v ON v.id = w.vocabulary_id
       WHERE w.vocabulary_id = $1
@@ -115,9 +116,10 @@ class ActivityModel {
     const wordsResult = await db.query(
       `
       SELECT 
-        id,
-        english,
-        spanish
+      id,
+      english,
+      spanish,
+      audio
       FROM vocabulary_words
       WHERE vocabulary_id = $1
       ORDER BY id ASC
