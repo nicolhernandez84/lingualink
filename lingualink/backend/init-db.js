@@ -61,6 +61,18 @@ async function initDB() {
         completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS student_progress (
+       id SERIAL PRIMARY KEY,
+       student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       level VARCHAR(20) NOT NULL,
+       completed_activities INTEGER DEFAULT 0,
+       total_score INTEGER DEFAULT 0,
+       total_questions INTEGER DEFAULT 0,
+       progress_percentage NUMERIC(5,2) DEFAULT 0,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(student_id, level)
+       );
+
       INSERT INTO users (type_document, number_document, password, role)
       VALUES 
       ('CC', '34556667', '1234', 'teacher'),
