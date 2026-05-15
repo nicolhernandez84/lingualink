@@ -1,39 +1,10 @@
-const pool = require('../config/db');
+const db = require('../config/db');
 
-class VocabularyModel {}
-  /* async getByLevel(level) {
-    const pool = await getConnection();
-
-    const result = await pool.request()
-      .input('level', sql.VarChar, level)
-      .query(`
-        SELECT
-          v.id,
-          v.name,
-          v.level,
-          v.theme,
-          v.emoji,
-          v.color,
-          v.created_at,
-          v.active,
-          COUNT(w.id) AS word_count
-        FROM Vocabularies v
-        LEFT JOIN VocabularyWords w ON w.vocabulary_id = v.id
-        WHERE v.level = @level AND ISNULL(v.active, 1) = 1
-        GROUP BY 
-          v.id, v.name, v.level, v.theme, 
-          v.emoji, v.color, v.created_at, v.active
-        ORDER BY v.created_at DESC
-      `);
-
-    return result.recordset;
-  }
-
-  async getAll() {
-    const pool = await getConnection();
-
-    const result = await pool.request().query(`
-      SELECT
+class VocabularyModel {
+  async getByLevel(level) {
+    const result = await db.query(
+      `
+      SELECT 
         v.id,
         v.name,
         v.level,
@@ -42,220 +13,287 @@ class VocabularyModel {}
         v.color,
         v.created_at,
         v.active,
-        COUNT(w.id) AS word_count
-      FROM Vocabularies v
-      LEFT JOIN VocabularyWords w ON w.vocabulary_id = v.id
-      WHERE ISNULL(v.active, 1) = 1
+        COUNT(w.id)::int AS word_count
+      FROM vocabularies v
+      LEFT JOIN vocabulary_words w ON w.vocabulary_id = v.id
+      WHERE v.level = $1
+        AND COALESCE(v.active, true) = true
       GROUP BY 
-        v.id, v.name, v.level, v.theme, 
-        v.emoji, v.color, v.created_at, v.active
-      ORDER BY v.level ASC, v.created_at DESC
-    `);
+        v.id,
+        v.name,
+        v.level,
+        v.theme,
+        v.emoji,
+        v.color,
+        v.created_at,
+        v.active
+      ORDER BY v.created_at DESC
+      `,
+      [level]
+    );
 
-    return result.recordset;
+    return result.rows;
+  }
+
+  async getAll() {
+    const result = await db.query(
+      `
+      SELECT 
+        v.id,
+        v.name,
+        v.level,
+        v.theme,
+        v.emoji,
+        v.color,
+        v.created_at,
+        v.active,
+        COUNT(w.id)::int AS word_count
+      FROM vocabularies v
+      LEFT JOIN vocabulary_words w ON w.vocabulary_id = v.id
+      WHERE COALESCE(v.active, true) = true
+      GROUP BY 
+        v.id,
+        v.name,
+        v.level,
+        v.theme,
+        v.emoji,
+        v.color,
+        v.created_at,
+        v.active
+      ORDER BY v.level ASC, v.created_at DESC
+      `
+    );
+
+    return result.rows;
   }
 
   async getById(id) {
-    const pool = await getConnection();
+    const vocabularyResult = await db.query(
+      `
+      SELECT 
+        id,
+        name,
+        level,
+        theme,
+        emoji,
+        color,
+        created_at,
+        active
+      FROM vocabularies
+      WHERE id = $1
+        AND COALESCE(active, true) = true
+      `,
+      [id]
+    );
 
-    const vocabResult = await pool.request()
-      .input('id', sql.Int, id)
-      .query(`
-        SELECT 
-          id, 
-          name, 
-          level, 
-          theme, 
-          emoji, 
-          color,
-          created_at, 
-          active
-        FROM Vocabularies
-        WHERE id = @id AND ISNULL(active, 1) = 1
-      `);
-
-    if (vocabResult.recordset.length === 0) {
+    if (vocabularyResult.rows.length === 0) {
       return null;
     }
 
-    const vocabulary = vocabResult.recordset[0];
+    const vocabulary = vocabularyResult.rows[0];
 
-    const wordsResult = await pool.request()
-      .input('vocabulary_id', sql.Int, id)
-      .query(`
-        SELECT 
-          id, 
-          vocabulary_id, 
-          english, 
-          spanish, 
-          audio, 
-          created_at
-        FROM VocabularyWords
-        WHERE vocabulary_id = @vocabulary_id
-        ORDER BY id ASC
-      `);
+    const wordsResult = await db.query(
+      `
+      SELECT 
+        id,
+        vocabulary_id,
+        english,
+        spanish,
+        audio,
+        created_at
+      FROM vocabulary_words
+      WHERE vocabulary_id = $1
+      ORDER BY id ASC
+      `,
+      [id]
+    );
 
-    vocabulary.words = wordsResult.recordset;
+    vocabulary.words = wordsResult.rows;
 
     return vocabulary;
   }
 
   async create(data) {
-    const pool = await getConnection();
-    const transaction = pool.transaction();
+    const client = await db.pool.connect();
 
     try {
-      await transaction.begin();
+      await client.query('BEGIN');
 
-      const vocabularyResult = await transaction.request()
-        .input('name', sql.NVarChar, data.name)
-        .input('level', sql.VarChar, data.level)
-        .input('theme', sql.NVarChar, data.theme)
-        .input('emoji', sql.NVarChar, data.emoji || '📚')
-        .input('color', sql.NVarChar, data.color || 'from-blue-600 to-blue-800')
-        .query(`
-          INSERT INTO Vocabularies 
+      const vocabularyResult = await client.query(
+        `
+        INSERT INTO vocabularies 
           (name, level, theme, emoji, color, active)
-          OUTPUT INSERTED.id
-          VALUES 
-          (@name, @level, @theme, @emoji, @color, 1)
-        `);
+        VALUES 
+          ($1, $2, $3, $4, $5, true)
+        RETURNING id
+        `,
+        [
+          data.name,
+          data.level,
+          data.theme,
+          data.emoji || '',
+          data.color || 'from-blue-600 to-blue-800'
+        ]
+      );
 
-      const vocabularyId = vocabularyResult.recordset[0].id;
+      const vocabularyId = vocabularyResult.rows[0].id;
       const words = Array.isArray(data.words) ? data.words : [];
 
       for (const word of words) {
         if (!word.english || !word.spanish) continue;
 
-        await transaction.request()
-          .input('vocabulary_id', sql.Int, vocabularyId)
-          .input('english', sql.NVarChar, word.english)
-          .input('spanish', sql.NVarChar, word.spanish)
-          .input('audio', sql.NVarChar, word.audio || null)
-          .query(`
-            INSERT INTO VocabularyWords 
+        await client.query(
+          `
+          INSERT INTO vocabulary_words 
             (vocabulary_id, english, spanish, audio)
-            VALUES 
-            (@vocabulary_id, @english, @spanish, @audio)
-          `);
+          VALUES 
+            ($1, $2, $3, $4)
+          `,
+          [
+            vocabularyId,
+            word.english,
+            word.spanish,
+            word.audio || null
+          ]
+        );
       }
 
-      await transaction.commit();
+      await client.query('COMMIT');
 
       return {
         success: true,
         id: vocabularyId
       };
-
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 
   async updateVocabulary(id, data) {
-    const pool = await getConnection();
-    const transaction = pool.transaction();
+    const client = await db.pool.connect();
 
     try {
-      await transaction.begin();
+      await client.query('BEGIN');
 
-      await transaction.request()
-        .input('id', sql.Int, id)
-        .input('name', sql.NVarChar, data.name)
-        .input('level', sql.VarChar, data.level)
-        .input('theme', sql.NVarChar, data.theme)
-        .input('emoji', sql.NVarChar, data.emoji || '📚')
-        .input('color', sql.NVarChar, data.color || 'from-blue-600 to-blue-800')
-        .query(`
-          UPDATE Vocabularies
-          SET
-            name = @name,
-            level = @level,
-            theme = @theme,
-            emoji = @emoji,
-            color = @color
-          WHERE id = @id
-        `);
+      await client.query(
+        `
+        UPDATE vocabularies
+        SET 
+          name = $1,
+          level = $2,
+          theme = $3,
+          emoji = $4,
+          color = $5
+        WHERE id = $6
+        `,
+        [
+          data.name,
+          data.level,
+          data.theme,
+          data.emoji || '',
+          data.color || 'from-blue-600 to-blue-800',
+          id
+        ]
+      );
 
-      await transaction.request()
-        .input('id', sql.Int, id)
-        .query(`
-          DELETE FROM VocabularyWords
-          WHERE vocabulary_id = @id
-        `);
+      await client.query(
+        `
+        DELETE FROM vocabulary_words
+        WHERE vocabulary_id = $1
+        `,
+        [id]
+      );
 
       const words = Array.isArray(data.words) ? data.words : [];
 
       for (const word of words) {
         if (!word.english || !word.spanish) continue;
 
-        await transaction.request()
-          .input('vocabulary_id', sql.Int, id)
-          .input('english', sql.NVarChar, word.english)
-          .input('spanish', sql.NVarChar, word.spanish)
-          .input('audio', sql.NVarChar, word.audio || null)
-          .query(`
-            INSERT INTO VocabularyWords
+        await client.query(
+          `
+          INSERT INTO vocabulary_words 
             (vocabulary_id, english, spanish, audio)
-            VALUES
-            (@vocabulary_id, @english, @spanish, @audio)
-          `);
+          VALUES 
+            ($1, $2, $3, $4)
+          `,
+          [
+            id,
+            word.english,
+            word.spanish,
+            word.audio || null
+          ]
+        );
       }
 
-      await transaction.commit();
+      await client.query('COMMIT');
 
       return true;
-
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 
   async deleteVocabulary(id) {
-    const pool = await getConnection();
-    const transaction = new sql.Transaction(pool);
+    const client = await db.pool.connect();
 
     try {
-      await transaction.begin();
+      await client.query('BEGIN');
 
-      const request = new sql.Request(transaction);
-      request.input('id', sql.Int, id);
+      await client.query(
+        `
+        DELETE FROM activity_results
+        WHERE activity_id IN (
+          SELECT id 
+          FROM activities 
+          WHERE vocabulary_id = $1
+        )
+        `,
+        [id]
+      );
 
-      await request.query(`
-        DELETE ar
-        FROM ActivityResults ar
-        INNER JOIN Activities a ON ar.activity_id = a.id
-        WHERE a.vocabulary_id = @id
-      `);
+      await client.query(
+        `
+        DELETE FROM activities
+        WHERE vocabulary_id = $1
+        `,
+        [id]
+      );
 
-      await request.query(`
-        DELETE FROM Activities
-        WHERE vocabulary_id = @id
-      `);
+      await client.query(
+        `
+        DELETE FROM vocabulary_words
+        WHERE vocabulary_id = $1
+        `,
+        [id]
+      );
 
-      await request.query(`
-        DELETE FROM VocabularyWords
-        WHERE vocabulary_id = @id
-      `);
+      await client.query(
+        `
+        DELETE FROM vocabularies
+        WHERE id = $1
+        `,
+        [id]
+      );
 
-      await request.query(`
-        DELETE FROM Vocabularies
-        WHERE id = @id
-      `);
-
-      await transaction.commit();
+      await client.query('COMMIT');
 
       return {
         success: true,
-        message: 'Vocabulario eliminado definitivamente'
+        message: 'Vocabulario eliminado correctamente'
       };
-
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
-  } */
+  }
+}
 
 module.exports = new VocabularyModel();
