@@ -293,7 +293,7 @@ async function loadVocabularyDetail() {
               ? `
                 <button
                   type="button"
-                  onclick="playVocabularyAudio('${encodeURIComponent(audio)}')"
+                  onclick="playVocabularyAudio('${encodeURIComponent(w.audio || '')}')"
                   class="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
                   🔊 Listen
                 </button>
@@ -523,37 +523,60 @@ function normalizeAudioPath(path) {
 function normalizeAudioUrl(audioUrl) {
   if (!audioUrl) return '';
 
-  const cleanUrl = decodeURIComponent(String(audioUrl))
-    .replace(/\\/g, '/')
-    .trim();
+  let cleanUrl = String(audioUrl)
+    .trim()
+    .replace(/\\/g, '/');
+
+  try {
+    cleanUrl = decodeURIComponent(cleanUrl);
+  } catch (error) {
+    // Si no se puede decodificar, se deja igual
+  }
 
   if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
     return cleanUrl;
   }
 
-  return `${API}/${cleanUrl.replace(/^\/+/, '')}`;
+  if (cleanUrl.startsWith('//')) {
+    return `https:${cleanUrl}`;
+  }
+
+  if (cleanUrl.startsWith('uploads/')) {
+    return `${API}/${cleanUrl}`;
+  }
+
+  if (
+    cleanUrl.endsWith('.mp3') ||
+    cleanUrl.endsWith('.m4a') ||
+    cleanUrl.endsWith('.wav') ||
+    cleanUrl.endsWith('.ogg')
+  ) {
+    return `https://res.cloudinary.com/dglpmze6f/video/upload/lingualink/audios/${cleanUrl}`;
+  }
+
+  return cleanUrl;
 }
 
 async function playVocabularyAudio(audioUrl) {
   try {
     const finalUrl = normalizeAudioUrl(audioUrl);
 
+    console.log('Audio recibido:', audioUrl);
+    console.log('Audio final:', finalUrl);
+
     if (!finalUrl) {
       alert('Esta palabra no tiene audio.');
       return;
     }
-
-    console.log('Audio final:', finalUrl);
 
     const audio = new Audio(finalUrl);
     audio.volume = 1;
     audio.preload = 'auto';
 
     await audio.play();
-
   } catch (error) {
     console.error('No se pudo reproducir el audio:', error);
-    alert('No se pudo reproducir el audio. Revisa la consola.');
+    alert('No se pudo reproducir el audio.');
   }
 }
 
