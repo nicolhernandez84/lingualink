@@ -1,4 +1,30 @@
 const VocabularyModel = require('../models/VocabularyModel');
+const cloudinary = require('../config/cloudinary');
+
+function parseWords(wordsText) {
+  try {
+    const words = JSON.parse(wordsText || '[]');
+    return Array.isArray(words) ? words : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function uploadAudioToCloudinary(file) {
+  if (!file) return '';
+
+  const base64Audio = file.buffer.toString('base64');
+  const dataUri = `data:${file.mimetype};base64,${base64Audio}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    resource_type: 'video',
+    folder: 'lingualink/audios',
+    use_filename: true,
+    unique_filename: true
+  });
+
+  return result.secure_url;
+}
 
 class VocabularyController {
   async getByLevel(req, res) {
@@ -18,7 +44,6 @@ class VocabularyController {
         success: true,
         data
       });
-
     } catch (error) {
       console.error('Error getByLevel:', error);
 
@@ -29,27 +54,6 @@ class VocabularyController {
       });
     }
   }
-  async delete(req, res) {
-  try {
-    const { id } = req.params;
-
-    await VocabularyModel.deleteVocabulary(id);
-
-    return res.json({
-      success: true,
-      message: 'Vocabulario eliminado correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error delete vocabulary:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Error eliminando vocabulario',
-      detail: error.message
-    });
-  }
-}
 
   async getAll(req, res) {
     try {
@@ -59,7 +63,6 @@ class VocabularyController {
         success: true,
         data
       });
-
     } catch (error) {
       console.error('Error getAll:', error);
 
@@ -86,7 +89,6 @@ class VocabularyController {
         success: true,
         data: vocabulary
       });
-
     } catch (error) {
       console.error('Error getById:', error);
 
@@ -99,108 +101,119 @@ class VocabularyController {
   }
 
   async create(req, res) {
-  try {
+    try {
+      const { name, level, theme, emoji, color } = req.body;
+      const files = req.files || [];
+      let words = parseWords(req.body.words);
 
-    const {
-      name,
-      level,
-      theme,
-      emoji,
-      color
-    } = req.body;
+      words = await Promise.all(
+        words.map(async (word, index) => {
+          const file = files[index];
+          const audioUrl = file ? await uploadAudioToCloudinary(file) : '';
 
-    let words = JSON.parse(req.body.words || '[]');
+          return {
+            english: word.english,
+            spanish: word.spanish,
+            audio: audioUrl
+          };
+        })
+      );
 
-    const files = req.files || [];
+      const result = await VocabularyModel.create({
+        name,
+        level,
+        theme,
+        emoji,
+        color,
+        words
+      });
 
-    words = words.map((word, index) => {
+      return res.status(201).json({
+        success: true,
+        message: 'Vocabulario creado correctamente',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error create vocabulary:', error);
 
-      const file = files[index];
-
-      return {
-        english: word.english,
-        spanish: word.spanish,
-        audio: file ? `uploads/${file.filename}` : ''
-      };
-    });
-
-    // ESTA PARTE FALTABA
-    const result = await VocabularyModel.create({
-      name,
-      level,
-      theme,
-      emoji,
-      color,
-      words
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: 'Vocabulario creado correctamente',
-      data: result
-    });
-
-  } catch (error) {
-
-    console.error('Error create vocabulary:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Error creando vocabulario',
-      detail: error.message
-    });
+      return res.status(500).json({
+        success: false,
+        message: 'Error creando vocabulario',
+        detail: error.message
+      });
+    }
   }
-}
-async update(req, res) {
-  try {
-    const { id } = req.params;
 
-    let words = JSON.parse(req.body.words || '[]');
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const files = req.files || [];
+      let words = parseWords(req.body.words);
 
-    const files = req.files || [];
+      let audioIndexes = req.body.audioIndex || [];
 
-let audioIndexes = req.body.audioIndex || [];
+      if (!Array.isArray(audioIndexes)) {
+        audioIndexes = [audioIndexes];
+      }
 
-if (!Array.isArray(audioIndexes)) {
-  audioIndexes = [audioIndexes];
-}
+      words = words.map((word) => {
+        return {
+          english: word.english,
+          spanish: word.spanish,
+          audio: word.audio || ''
+        };
+      });
 
-words = words.map((word, index) => {
-  return {
-    english: word.english,
-    spanish: word.spanish,
-    audio: word.audio || ''
-  };
-});
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        const file = files[fileIndex];
+        const wordIndex = Number(audioIndexes[fileIndex]);
 
-files.forEach((file, fileIndex) => {
-  const wordIndex = Number(audioIndexes[fileIndex]);
+        if (!isNaN(wordIndex) && words[wordIndex]) {
+          const audioUrl = await uploadAudioToCloudinary(file);
+          words[wordIndex].audio = audioUrl;
+        }
+      }
 
-  if (!isNaN(wordIndex) && words[wordIndex]) {
-    words[wordIndex].audio = `uploads/${file.filename}`;
-      };
-    });
+      await VocabularyModel.updateVocabulary(id, {
+        ...req.body,
+        words
+      });
 
-    await VocabularyModel.updateVocabulary(id, {
-      ...req.body,
-      words
-    });
+      return res.json({
+        success: true,
+        message: 'Vocabulario actualizado correctamente'
+      });
+    } catch (error) {
+      console.error('Error update vocabulary:', error);
 
-    return res.json({
-      success: true,
-      message: 'Vocabulario actualizado correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error update vocabulary:', error);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Error modificando vocabulario',
-      detail: error.message
-    });
+      return res.status(500).json({
+        success: false,
+        message: 'Error modificando vocabulario',
+        detail: error.message
+      });
+    }
   }
-}
+
+  async delete(req, res) {
+    try {
+      const { id } = req.params;
+
+      await VocabularyModel.deleteVocabulary(id);
+
+      return res.json({
+        success: true,
+        message: 'Vocabulario eliminado correctamente'
+      });
+    } catch (error) {
+      console.error('Error delete vocabulary:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Error eliminando vocabulario',
+        detail: error.message
+      });
+    }
+  }
 }
 
 module.exports = new VocabularyController();
