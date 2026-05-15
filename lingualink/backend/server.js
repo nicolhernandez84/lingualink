@@ -74,6 +74,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api', authRoutes);
 app.use('/api', vocabularyRoutes);
 app.use('/api/activities', activityRoutes);
+app.use((error, req, res, next) => {
+  console.error('Error general del servidor:', error);
+
+  return res.status(500).json({
+    success: false,
+    message: 'Error interno del servidor',
+    detail: error.message
+  });
+});
 
 /* Esta parte siempre debe ir al final */
 app.use((req, res) => {

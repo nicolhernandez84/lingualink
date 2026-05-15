@@ -4,21 +4,30 @@ const VocabularyController = require('../controllers/VocabularyController');
 
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, '../uploads');
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadDir);
   },
-
   filename: function (req, file, cb) {
-    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
+    const safeName = file.originalname
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9.-]/g, '');
+
+    const uniqueName = Date.now() + '-' + safeName;
     cb(null, uniqueName);
   }
 });
 
 const upload = multer({
   storage,
-
   fileFilter: function (req, file, cb) {
     const extension = path.extname(file.originalname).toLowerCase();
 
