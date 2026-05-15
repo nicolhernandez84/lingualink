@@ -554,20 +554,43 @@ function wordsToText(words) {
   return '';
 }
 
-async function playVocabularyAudio(audioUrl) {
-  if (!audioUrl) {
-    console.log('This word has no audio.');
-    return;
+function getAudioUrl(audio) {
+  if (!audio) return '';
+
+  const value = String(audio).trim().replace(/\\/g, '/');
+
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
   }
 
-  const finalUrl = normalizeAudioUrl(audioUrl);
+  return `${API}/${value.replace(/^\/+/, '')}`;
+}
 
+async function playVocabularyAudio(audioUrl) {
   try {
+    const finalUrl = getAudioUrl(audioUrl);
+
+    if (!finalUrl) {
+      alert('Esta palabra no tiene audio.');
+      return;
+    }
+
+    console.log('Reproduciendo audio:', finalUrl);
+
     const audio = new Audio(finalUrl);
+    audio.preload = 'auto';
+    audio.volume = 1;
+
     await audio.play();
   } catch (error) {
-    console.error('The audio could not be played:', error);
+    console.error('No se pudo reproducir el audio:', error);
+    alert('No se pudo reproducir el audio. Revisa la consola o la URL del audio.');
   }
+}
+
+function playStudentAudio(encodedAudioUrl) {
+  const audioUrl = decodeURIComponent(encodedAudioUrl);
+  playVocabularyAudio(audioUrl);
 }
 
 async function viewTeacherVocabulary(id) {
@@ -1882,7 +1905,7 @@ function renderStudentCompleteActivity(activity, words) {
                   ? `
                     <button 
                       type="button"
-                      onclick="playVocabularyAudio('${audio}')"
+                      onclick="playStudentAudio('${encodeURIComponent(word.audio || '')}')"
                       class="mb-4 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
                       🔊 Escuchar audio
                     </button>
@@ -1972,7 +1995,7 @@ function renderStudentMatchingActivity(activity, words) {
                   ? `
                     <button 
                       type="button"
-                      onclick="playVocabularyAudio('${audio}')"
+                      onclick="playStudentAudio('${encodeURIComponent(word.audio || '')}')"
                       class="mb-4 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
                       🔊 Escuchar audio
                     </button>
