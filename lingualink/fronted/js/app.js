@@ -1502,7 +1502,7 @@ function checkMatchingActivity() {
   });
 
   resultBox.className = 'mt-6 p-5 rounded-2xl font-bold bg-blue-50 text-blue-700';
-  resultBox.textContent = `Resultado: ${correct} de ${selects.length} relaciones correctas.`;
+  resultBox.textContent = `Result: ${correct} de ${selects.length} correct relationships.`;
 }
 
 async function publishProfessorActivity(vocabularyId, activityType) {
@@ -1511,15 +1511,15 @@ async function publishProfessorActivity(vocabularyId, activityType) {
   const alertBox = $('publish-alert');
 
   const title = activityType === 'complete'
-    ? 'Actividad de completar'
-    : 'Actividad de relacionar';
+    ? 'Complete activity'
+    : 'Relate activity';
 
   const instructions = activityType === 'complete'
-    ? 'Completa cada palabra en inglés según la pista en español.'
-    : 'Relaciona cada palabra en inglés con su traducción en español.';
+    ? 'Complete each word in English according to the clue in Spanish.'
+    : 'Match each English word with its Spanish translation.';
 
   alertBox.className = 'mt-6 p-5 rounded-2xl font-bold bg-blue-50 text-blue-700';
-  alertBox.textContent = 'Publicando actividad...';
+  alertBox.textContent = 'Publishing activity...';
 
   try {
     const result = await requestJSON(`${API}/api/activities`, {
@@ -1534,7 +1534,7 @@ async function publishProfessorActivity(vocabularyId, activityType) {
     });
 
     alertBox.className = 'mt-6 p-5 rounded-2xl font-bold bg-green-50 text-green-700';
-    alertBox.textContent = result.message || 'Actividad publicada correctamente.';
+    alertBox.textContent = result.message || 'Activity published successfully.';
 
     // Esto actualiza la lista inmediatamente sin salir de la página
     setTimeout(() => {
@@ -1556,7 +1556,7 @@ async function loadTeacherPublishedActivities(type = null) {
 
   box.innerHTML = `
     <div class="card p-8 text-center text-slate-500">
-      Cargando actividades publicadas...
+      Loading published activities...
     </div>
   `;
 
@@ -1574,11 +1574,11 @@ async function loadTeacherPublishedActivities(type = null) {
           <div class="text-5xl mb-4">🧩</div>
 
           <h3 class="text-2xl font-extrabold text-slate-900">
-            No hay actividades publicadas todavía
+            There are no published activities yet
           </h3>
 
           <p class="text-slate-500 mt-2">
-            Cuando publiques una actividad, aparecerá aquí automáticamente.
+            When you post an activity, it will automatically appear here.
           </p>
         </div>
       `;
@@ -1614,7 +1614,7 @@ async function loadTeacherPublishedActivities(type = null) {
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-purple-100 text-purple-700'
                   }">
-                    ${isComplete ? 'Completar' : 'Relacionar'}
+                    ${isComplete ? 'Complete' : 'Relate'}
                   </span>
                 </div>
 
@@ -1633,7 +1633,7 @@ async function loadTeacherPublishedActivities(type = null) {
               onclick="deletePublishedActivity(${activity.id}, '${activity.activity_type}')"
               class="activity-delete-btn px-6 py-4 rounded-2xl font-bold"
             >
-              Eliminar
+              Delete
             </button>
 
           </div>
@@ -1658,13 +1658,13 @@ async function deletePublishedActivity(activityId, type = '') {
 
   if (typeof showConfirmModal === 'function') {
     confirmar = await showConfirmModal({
-      title: 'Eliminar actividad',
-      message: '¿Seguro que deseas eliminar esta actividad? Ya no aparecerá para los estudiantes.',
-      confirmText: 'Sí, eliminar',
-      cancelText: 'Cancelar'
+      title: 'Delete activity',
+      message: 'Are you sure you want to delete this activity? It will no longer appear for students.',
+      confirmText: 'yes, delete',
+      cancelText: 'Cancel'
     });
   } else {
-    confirmar = confirm('¿Seguro que deseas eliminar esta actividad?');
+    confirmar = confirm('Are you sure you want to delete this activity?');
   }
 
   if (!confirmar) return;
@@ -1675,9 +1675,9 @@ async function deletePublishedActivity(activityId, type = '') {
     });
 
     if (typeof showToast === 'function') {
-      showToast('Actividad eliminada correctamente.', 'success');
+      showToast('Activity successfully removed.', 'success');
     } else {
-      alert('Actividad eliminada correctamente.');
+      alert('Activity successfully removed.');
     }
 
     loadTeacherPublishedActivities(type || null);
@@ -1703,7 +1703,7 @@ async function loadStudentActivitiesByLevel() {
 
   grid.innerHTML = `
     <div class="card p-8 text-center text-slate-500 md:col-span-2 lg:col-span-3">
-      Cargando actividades...
+      Loading activities...
     </div>
   `;
 
@@ -1717,11 +1717,11 @@ async function loadStudentActivitiesByLevel() {
           <div class="text-5xl mb-4">🧩</div>
 
           <h3 class="text-2xl font-extrabold text-slate-900">
-            No hay actividades publicadas
+            There are no published activities
           </h3>
 
           <p class="text-slate-500 mt-2">
-            Cuando tu profesor publique actividades para este nivel, aparecerán aquí.
+            When your teacher posts activities for this level, they will appear here.
           </p>
         </div>
       `;
@@ -1775,7 +1775,7 @@ async function loadStudentActivitiesByLevel() {
                 class="px-5 py-3 rounded-2xl font-bold text-white shadow"
                 style="background: ${gradient};"
               >
-                Realizar
+                Realize
               </button>
             </div>
           </div>
@@ -1888,7 +1888,7 @@ function renderStudentCompleteActivity(activity, words) {
     class="px-6 py-4 rounded-2xl font-bold text-white shadow"
     style="background: ${gradient};"
   >
-   Finalizar actividad
+   End activity
   </button>
 
   <button 
@@ -1925,7 +1925,7 @@ function renderStudentMatchingActivity(activity, words) {
       ${words.map((word, index) => `
         <div class="card p-6 grid md:grid-cols-2 gap-5 items-center">
           <div>
-            <p class="text-sm font-bold text-slate-400 mb-2">Palabra en inglés</p>
+            <p class="text-sm font-bold text-slate-400 mb-2">English word</p>
 
             <p 
               class="text-2xl font-extrabold"
@@ -1936,7 +1936,7 @@ function renderStudentMatchingActivity(activity, words) {
           </div>
 
           <select data-student-match-index="${index}" class="input w-full">
-            <option value="">Selecciona la traducción</option>
+            <option value="">Select the translation </option>
             ${spanishOptions.map(option => `
               <option value="${option}">${option}</option>
             `).join('')}
@@ -1951,7 +1951,7 @@ function renderStudentMatchingActivity(activity, words) {
     class="px-6 py-4 rounded-2xl font-bold text-white shadow"
     style="background: ${gradient};"
   >
-    Finalizar actividad
+    End activity
   </button>
 
  <button 
@@ -2053,7 +2053,7 @@ async function saveStudentResult(score, totalQuestions, answers) {
     : 0;
 
   resultBox.className = 'mt-8 p-5 rounded-2xl font-bold bg-blue-50 text-blue-700';
-  resultBox.textContent = 'Guardando resultado...';
+  resultBox.textContent = 'Saving result...';
 
   try {
     await requestJSON(`${API}/api/activities/${activity.id}/result`, {
@@ -2070,9 +2070,9 @@ async function saveStudentResult(score, totalQuestions, answers) {
 
     resultBox.className = 'mt-8 p-5 rounded-2xl font-bold bg-green-50 text-green-700';
     resultBox.innerHTML = `
-      Resultado guardado correctamente. 
-      Puntaje: ${score} de ${totalQuestions}. 
-      Porcentaje: ${percentage}%.
+      Result saved successfully. 
+      Score: ${score} de ${totalQuestions}. 
+      Percentage: ${percentage}%.
     `;
 
   } catch (error) {
@@ -2121,7 +2121,7 @@ function initStudentLevelDashboard() {
   }
 
   if ($('level-description')) {
-    $('level-description').textContent = 'Elige qué deseas hacer en este nivel.';
+    $('level-description').textContent = 'Choose what you want to do at this level.';
   }
 
   const savedSection = localStorage.getItem('level_section') || 'vocabularies';
@@ -2187,15 +2187,15 @@ function showLevelSection(section) {
 
   if ($('level-description')) {
     if (section === 'vocabularies') {
-      $('level-description').textContent = 'Consulta los vocabularios disponibles para este nivel.';
+      $('level-description').textContent = 'Check the vocabulary available for this level.';
     }
 
     if (section === 'activities') {
-      $('level-description').textContent = 'Realiza las actividades publicadas por tu profesor.';
+      $('level-description').textContent = 'Complete the activities posted by your teacher.';
     }
 
     if (section === 'progress') {
-      $('level-description').textContent = `Visualiza tu progreso en el nivel ${level}.`;
+      $('level-description').textContent = `View your progress at the level ${level}.`;
     }
   }
 
@@ -2421,7 +2421,7 @@ function initStudentLevelDashboard() {
   }
 
   if ($('level-description')) {
-    $('level-description').textContent = 'Elige qué deseas hacer en este nivel.';
+    $('level-description').textContent = 'Choose what you want to do at this level.';
   }
 
   showLevelSection('vocabularies');
@@ -2475,15 +2475,15 @@ function showLevelSection(section) {
 
   if ($('level-description')) {
     if (section === 'vocabularies') {
-      $('level-description').textContent = 'Consulta los vocabularios disponibles para este nivel.';
+      $('level-description').textContent = 'Check the vocabulary available for this level.';
     }
 
     if (section === 'activities') {
-      $('level-description').textContent = 'Realiza las actividades publicadas por tu profesor.';
+      $('level-description').textContent = 'Complete the activities posted by your teacher.';
     }
 
     if (section === 'progress') {
-      $('level-description').textContent = `Visualiza tu progreso en el nivel ${level}.`;
+      $('level-description').textContent = `View your progress at the level ${level}.`;
     }
   }
 
