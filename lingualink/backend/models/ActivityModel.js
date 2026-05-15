@@ -1,306 +1,305 @@
-const { getConnection, sql } = require('../config/db');
+const db = require('../config/db');
 
 class ActivityModel {
   async getVocabularyWords(vocabularyId) {
-    const pool = await getConnection();
+    const result = await db.query(
+      `
+      SELECT 
+        w.id,
+        w.english,
+        w.spanish
+      FROM vocabulary_words w
+      INNER JOIN vocabularies v ON v.id = w.vocabulary_id
+      WHERE w.vocabulary_id = $1
+        AND COALESCE(v.active, true) = true
+      ORDER BY w.id ASC
+      `,
+      [vocabularyId]
+    );
 
-    const result = await pool.request()
-      .input('id', sql.Int, vocabularyId)
-      .query(`
-        SELECT 
-          w.id, 
-          w.english, 
-          w.spanish
-        FROM VocabularyWords w
-        INNER JOIN Vocabularies v ON v.id = w.vocabulary_id
-        WHERE 
-          w.vocabulary_id = @id
-          AND ISNULL(v.active, 1) = 1
-        ORDER BY w.id ASC
-      `);
-
-    return result.recordset;
+    return result.rows;
   }
 
   async createActivity(data) {
-    const pool = await getConnection();
-
-    const result = await pool.request()
-      .input('vocabulary_id', sql.Int, data.vocabulary_id)
-      .input('activity_type', sql.VarChar, data.activity_type)
-      .input('title', sql.NVarChar, data.title)
-      .input('instructions', sql.NVarChar, data.instructions || null)
-      .query(`
-        INSERT INTO Activities
+    const result = await db.query(
+      `
+      INSERT INTO activities 
         (vocabulary_id, activity_type, title, instructions, active)
-        OUTPUT INSERTED.id
-        VALUES
-        (@vocabulary_id, @activity_type, @title, @instructions, 1)
-      `);
+      VALUES 
+        ($1, $2, $3, $4, true)
+      RETURNING 
+        id,
+        vocabulary_id,
+        activity_type,
+        title,
+        instructions,
+        active,
+        created_at
+      `,
+      [
+        data.vocabulary_id,
+        data.activity_type,
+        data.title,
+        data.instructions || null
+      ]
+    );
 
-    return result.recordset[0];
+    return result.rows[0];
   }
 
   async getPublishedActivities(level = null) {
-    const pool = await getConnection();
+    let query = `
+      SELECT 
+        a.id,
+        a.vocabulary_id,
+        a.activity_type,
+        a.title,
+        a.instructions,
+        a.active,
+        a.created_at,
+        v.name AS vocabulary_name,
+        v.level,
+        v.theme,
+        v.emoji,
+        v.color
+      FROM activities a
+      INNER JOIN vocabularies v ON v.id = a.vocabulary_id
+      WHERE COALESCE(a.active, true) = true
+        AND COALESCE(v.active, true) = true
+    `;
 
-    const result = await pool.request()
-      .input('level', sql.VarChar, level || null)
-      .query(`
-        SELECT 
-          a.id,
-          a.vocabulary_id,
-          a.activity_type,
-          a.title,
-          a.instructions,
-          a.active,
-          a.created_at,
-          v.name AS vocabulary_name,
-          v.level,
-          v.theme,
-          v.emoji,
-          v.color
-        FROM Activities a
-        INNER JOIN Vocabularies v ON v.id = a.vocabulary_id
-        WHERE 
-          ISNULL(a.active, 1) = 1
-          AND ISNULL(v.active, 1) = 1
-          AND (@level IS NULL OR v.level = @level)
-        ORDER BY a.created_at DESC
-      `);
+    const params = [];
 
-    return result.recordset;
+    if (level) {
+      params.push(level);
+      query += ` AND v.level = $1 `;
+    }
+
+    query += ` ORDER BY a.created_at DESC `;
+
+    const result = await db.query(query, params);
+    return result.rows;
   }
 
   async getActivityById(activityId) {
-    const pool = await getConnection();
+    const activityResult = await db.query(
+      `
+      SELECT 
+        a.id,
+        a.vocabulary_id,
+        a.activity_type,
+        a.title,
+        a.instructions,
+        a.active,
+        a.created_at,
+        v.name AS vocabulary_name,
+        v.level,
+        v.theme,
+        v.emoji,
+        v.color
+      FROM activities a
+      INNER JOIN vocabularies v ON v.id = a.vocabulary_id
+      WHERE a.id = $1
+        AND COALESCE(a.active, true) = true
+        AND COALESCE(v.active, true) = true
+      `,
+      [activityId]
+    );
 
-    const activityResult = await pool.request()
-      .input('id', sql.Int, activityId)
-      .query(`
-        SELECT 
-          a.id,
-          a.vocabulary_id,
-          a.activity_type,
-          a.title,
-          a.instructions,
-          a.active,
-          a.created_at,
-          v.name AS vocabulary_name,
-          v.level,
-          v.theme,
-          v.emoji,
-          v.color
-        FROM Activities a
-        INNER JOIN Vocabularies v ON v.id = a.vocabulary_id
-        WHERE 
-          a.id = @id
-          AND ISNULL(a.active, 1) = 1
-          AND ISNULL(v.active, 1) = 1
-      `);
-
-    if (activityResult.recordset.length === 0) {
+    if (activityResult.rows.length === 0) {
       return null;
     }
 
-    const activity = activityResult.recordset[0];
+    const activity = activityResult.rows[0];
 
-    const wordsResult = await pool.request()
-      .input('vocabulary_id', sql.Int, activity.vocabulary_id)
-      .query(`
-        SELECT 
-          id,
-          english,
-          spanish
-        FROM VocabularyWords
-        WHERE vocabulary_id = @vocabulary_id
-        ORDER BY id ASC
-      `);
+    const wordsResult = await db.query(
+      `
+      SELECT 
+        id,
+        english,
+        spanish
+      FROM vocabulary_words
+      WHERE vocabulary_id = $1
+      ORDER BY id ASC
+      `,
+      [activity.vocabulary_id]
+    );
 
-    activity.words = wordsResult.recordset;
+    activity.words = wordsResult.rows;
 
     return activity;
   }
 
- async deleteActivity(activityId) {
-  const pool = await getConnection();
-  const transaction = pool.transaction();
-
-  try {
-    await transaction.begin();
-
-    // 1. BORRAR PROGRESO DEL ESTUDIANTE ANTES DE BORRAR RESULTADOS
-    await transaction.request()
-      .input('id', sql.Int, activityId)
-      .query(`
-        DELETE SP
-        FROM StudentProgress SP
-        INNER JOIN ActivityResults AR
-          ON AR.student_id = SP.student_id
-        INNER JOIN Activities A
-          ON A.id = AR.activity_id
-        INNER JOIN Vocabularies V
-          ON V.id = A.vocabulary_id
-          AND V.level = SP.level
-        WHERE AR.activity_id = @id
-      `);
-
-    // 2. BORRAR RESULTADOS DE LA ACTIVIDAD
-    await transaction.request()
-      .input('id', sql.Int, activityId)
-      .query(`
-        DELETE FROM ActivityResults
-        WHERE activity_id = @id
-      `);
-
-    // 3. BORRAR ACTIVIDAD
-    const result = await transaction.request()
-      .input('id', sql.Int, activityId)
-      .query(`
-        DELETE FROM Activities
-        WHERE id = @id
-      `);
-
-    await transaction.commit();
-
-    return result.rowsAffected[0] > 0;
-
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-}
-
-  async saveActivityResult(activityId, data) {
-    const pool = await getConnection();
-    const transaction = pool.transaction();
+  async deleteActivity(activityId) {
+    const client = await db.pool.connect();
 
     try {
-      await transaction.begin();
+      await client.query('BEGIN');
 
-      const activityResult = await transaction.request()
-        .input('activity_id', sql.Int, activityId)
-        .query(`
-          SELECT 
-            a.id,
-            v.level
-          FROM Activities a
-          INNER JOIN Vocabularies v ON v.id = a.vocabulary_id
-          WHERE 
-            a.id = @activity_id
-            AND ISNULL(a.active, 1) = 1
-            AND ISNULL(v.active, 1) = 1
-        `);
+      await client.query(
+        `
+        DELETE FROM student_progress sp
+        USING activity_results ar, activities a, vocabularies v
+        WHERE ar.student_id = sp.student_id
+          AND a.id = ar.activity_id
+          AND v.id = a.vocabulary_id
+          AND v.level = sp.level
+          AND ar.activity_id = $1
+        `,
+        [activityId]
+      );
 
-      if (activityResult.recordset.length === 0) {
+      await client.query(
+        `
+        DELETE FROM activity_results
+        WHERE activity_id = $1
+        `,
+        [activityId]
+      );
+
+      const result = await client.query(
+        `
+        DELETE FROM activities
+        WHERE id = $1
+        `,
+        [activityId]
+      );
+
+      await client.query('COMMIT');
+
+      return result.rowCount > 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async saveActivityResult(activityId, data) {
+    const client = await db.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const activityResult = await client.query(
+        `
+        SELECT 
+          a.id,
+          v.level
+        FROM activities a
+        INNER JOIN vocabularies v ON v.id = a.vocabulary_id
+        WHERE a.id = $1
+          AND COALESCE(a.active, true) = true
+          AND COALESCE(v.active, true) = true
+        `,
+        [activityId]
+      );
+
+      if (activityResult.rows.length === 0) {
         throw new Error('Actividad no encontrada o inactiva');
       }
 
-      const activity = activityResult.recordset[0];
-
+      const activity = activityResult.rows[0];
       const answersJson = JSON.stringify(data.answers || []);
 
-      const resultInsert = await transaction.request()
-        .input('activity_id', sql.Int, activityId)
-        .input('student_id', sql.Int, data.student_id)
-        .input('score', sql.Int, data.score)
-        .input('total_questions', sql.Int, data.total_questions)
-        .input('percentage', sql.Decimal(5, 2), data.percentage)
-        .input('answers_json', sql.NVarChar, answersJson)
-        .query(`
-          INSERT INTO ActivityResults
+      const resultInsert = await client.query(
+        `
+        INSERT INTO activity_results 
           (activity_id, student_id, score, total_questions, percentage, answers_json)
-          OUTPUT INSERTED.id
-          VALUES
-          (@activity_id, @student_id, @score, @total_questions, @percentage, @answers_json)
-        `);
+        VALUES 
+          ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+        `,
+        [
+          activityId,
+          data.student_id,
+          data.score,
+          data.total_questions,
+          data.percentage,
+          answersJson
+        ]
+      );
 
-      const summaryResult = await transaction.request()
-        .input('student_id', sql.Int, data.student_id)
-        .input('level', sql.VarChar, activity.level)
-        .query(`
-          WITH RankedResults AS (
-            SELECT 
-              ar.activity_id,
-              ar.score,
-              ar.total_questions,
-              ar.percentage,
-              ROW_NUMBER() OVER (
-                PARTITION BY ar.activity_id 
-                ORDER BY ar.completed_at DESC
-              ) AS rn
-            FROM ActivityResults ar
-            INNER JOIN Activities a ON a.id = ar.activity_id
-            INNER JOIN Vocabularies v ON v.id = a.vocabulary_id
-            WHERE 
-              ar.student_id = @student_id
-              AND v.level = @level
-              AND ISNULL(a.active, 1) = 1
-              AND ISNULL(v.active, 1) = 1
+      const summaryResult = await client.query(
+        `
+        WITH ranked_results AS (
+          SELECT 
+            ar.activity_id,
+            ar.score,
+            ar.total_questions,
+            ar.percentage,
+            ROW_NUMBER() OVER (
+              PARTITION BY ar.activity_id
+              ORDER BY ar.completed_at DESC
+            ) AS rn
+          FROM activity_results ar
+          INNER JOIN activities a ON a.id = ar.activity_id
+          INNER JOIN vocabularies v ON v.id = a.vocabulary_id
+          WHERE ar.student_id = $1
+            AND v.level = $2
+            AND COALESCE(a.active, true) = true
+            AND COALESCE(v.active, true) = true
+        )
+        SELECT 
+          COUNT(*)::int AS completed_activities,
+          COALESCE(SUM(score), 0)::int AS total_score,
+          COALESCE(SUM(total_questions), 0)::int AS total_questions,
+          ROUND(
+            CASE 
+              WHEN COALESCE(SUM(total_questions), 0) = 0 THEN 0
+              ELSE 
+                (
+                  COALESCE(SUM(score), 0)::numeric / 
+                  COALESCE(SUM(total_questions), 0)::numeric
+                ) * 100
+            END,
+            2
+          ) AS progress_percentage
+        FROM ranked_results
+        WHERE rn = 1
+        `,
+        [data.student_id, activity.level]
+      );
+
+      const summary = summaryResult.rows[0];
+
+      await client.query(
+        `
+        INSERT INTO student_progress 
+          (
+            student_id,
+            level,
+            completed_activities,
+            total_score,
+            total_questions,
+            progress_percentage,
+            updated_at
           )
-          SELECT
-            COUNT(*) AS completed_activities,
-            ISNULL(SUM(score), 0) AS total_score,
-            ISNULL(SUM(total_questions), 0) AS total_questions,
-            CAST(
-              CASE 
-                WHEN ISNULL(SUM(total_questions), 0) = 0 THEN 0
-                ELSE (CAST(ISNULL(SUM(score), 0) AS DECIMAL(10,2)) / ISNULL(SUM(total_questions), 0)) * 100
-              END 
-            AS DECIMAL(5,2)) AS progress_percentage
-          FROM RankedResults
-          WHERE rn = 1
-        `);
+        VALUES 
+          ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (student_id, level)
+        DO UPDATE SET
+          completed_activities = EXCLUDED.completed_activities,
+          total_score = EXCLUDED.total_score,
+          total_questions = EXCLUDED.total_questions,
+          progress_percentage = EXCLUDED.progress_percentage,
+          updated_at = NOW()
+        `,
+        [
+          data.student_id,
+          activity.level,
+          summary.completed_activities,
+          summary.total_score,
+          summary.total_questions,
+          Number(summary.progress_percentage || 0)
+        ]
+      );
 
-      const summary = summaryResult.recordset[0];
-
-      const existingProgress = await transaction.request()
-        .input('student_id', sql.Int, data.student_id)
-        .input('level', sql.VarChar, activity.level)
-        .query(`
-          SELECT id
-          FROM StudentProgress
-          WHERE student_id = @student_id AND level = @level
-        `);
-
-      if (existingProgress.recordset.length > 0) {
-        await transaction.request()
-          .input('student_id', sql.Int, data.student_id)
-          .input('level', sql.VarChar, activity.level)
-          .input('completed_activities', sql.Int, summary.completed_activities)
-          .input('total_score', sql.Int, summary.total_score)
-          .input('total_questions', sql.Int, summary.total_questions)
-          .input('progress_percentage', sql.Decimal(5, 2), Number(summary.progress_percentage || 0))
-          .query(`
-            UPDATE StudentProgress
-            SET
-              completed_activities = @completed_activities,
-              total_score = @total_score,
-              total_questions = @total_questions,
-              progress_percentage = @progress_percentage,
-              updated_at = GETDATE()
-            WHERE student_id = @student_id AND level = @level
-          `);
-      } else {
-        await transaction.request()
-          .input('student_id', sql.Int, data.student_id)
-          .input('level', sql.VarChar, activity.level)
-          .input('completed_activities', sql.Int, summary.completed_activities)
-          .input('total_score', sql.Int, summary.total_score)
-          .input('total_questions', sql.Int, summary.total_questions)
-          .input('progress_percentage', sql.Decimal(5, 2), Number(summary.progress_percentage || 0))
-          .query(`
-            INSERT INTO StudentProgress
-            (student_id, level, completed_activities, total_score, total_questions, progress_percentage)
-            VALUES
-            (@student_id, @level, @completed_activities, @total_score, @total_questions, @progress_percentage)
-          `);
-      }
-
-      await transaction.commit();
+      await client.query('COMMIT');
 
       return {
-        result_id: resultInsert.recordset[0].id,
+        result_id: resultInsert.rows[0].id,
         progress: {
           level: activity.level,
           completed_activities: summary.completed_activities,
@@ -309,21 +308,19 @@ class ActivityModel {
           progress_percentage: Number(summary.progress_percentage || 0)
         }
       };
-
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 
   async getStudentProgress(studentId) {
-  const pool = await getConnection();
-
-  const result = await pool.request()
-    .input('student_id', sql.Int, studentId)
-    .query(`
-      WITH BestResults AS (
-        SELECT
+    const result = await db.query(
+      `
+      WITH best_results AS (
+        SELECT 
           ar.activity_id,
           ar.student_id,
           ar.score,
@@ -339,14 +336,14 @@ class ActivityModel {
             PARTITION BY ar.activity_id
             ORDER BY ar.completed_at DESC
           ) AS rn
-        FROM ActivityResults ar
-        INNER JOIN Activities a ON a.id = ar.activity_id
-        INNER JOIN Vocabularies v ON v.id = a.vocabulary_id
-        WHERE ar.student_id = @student_id
-          AND ISNULL(a.active, 1) = 1
-          AND ISNULL(v.active, 1) = 1
+        FROM activity_results ar
+        INNER JOIN activities a ON a.id = ar.activity_id
+        INNER JOIN vocabularies v ON v.id = a.vocabulary_id
+        WHERE ar.student_id = $1
+          AND COALESCE(a.active, true) = true
+          AND COALESCE(v.active, true) = true
       )
-      SELECT
+      SELECT 
         activity_id,
         title,
         activity_type,
@@ -357,12 +354,15 @@ class ActivityModel {
         total_questions,
         percentage,
         completed_at
-      FROM BestResults
+      FROM best_results
       WHERE rn = 1
       ORDER BY level ASC, completed_at DESC
-    `);
+      `,
+      [studentId]
+    );
 
-  return result.recordset;
+    return result.rows;
+  }
 }
-}
+
 module.exports = new ActivityModel();
