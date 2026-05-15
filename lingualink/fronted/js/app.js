@@ -270,34 +270,52 @@ async function loadVocabularyDetail() {
   try {
     const result = await requestJSON(`${API}/api/vocabulary/${id}`);
     const v = result.data;
+
     $('vocab-title').textContent = v.name;
     $('vocab-theme').textContent = v.theme || '';
-    $('vocab-emoji').textContent = v.emoji || '📚';
+    $('vocab-emoji').textContent = v.emoji || '';
 
     box.innerHTML = (v.words || []).map(w => {
-      const audioName = w.audio ? String(w.audio).replace('uploads/', '') : '';
+      const audio = w.audio || '';
 
       return `
-        <div class="card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p class="text-2xl font-bold text-slate-900">${w.english}</p>
-            <p class="text-slate-500">${w.spanish}</p>
-          </div>
+        <div class="card p-6 mb-5">
+          <h3 class="text-2xl font-black text-slate-800">
+            ${w.english}
+          </h3>
+
+          <p class="text-slate-500 text-lg mb-4">
+            ${w.spanish}
+          </p>
 
           ${
-            audioName
-              ? `<button onclick="new Audio('/uploads/${audioName}').play()" class="btn-blue px-5 py-3 rounded-2xl font-semibold">Listen</button>`
-              : ''
+            audio
+              ? `
+                <button
+                  type="button"
+                  onclick="playVocabularyAudio('${encodeURIComponent(audio)}')"
+                  class="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100">
+                  🔊 Listen
+                </button>
+              `
+              : `
+                <p class="text-slate-400 font-bold">
+                  No audio
+                </p>
+              `
           }
         </div>
       `;
     }).join('');
 
   } catch (error) {
-    box.innerHTML = `<div class="card p-8 text-red-600">${error.message}</div>`;
+    box.innerHTML = `
+      <div class="card p-6 text-red-600 font-bold">
+        ${error.message}
+      </div>
+    `;
   }
 }
-
 /* PROFESOR CREAR */
 
 async function createTeacherVocabulary() {
@@ -505,16 +523,38 @@ function normalizeAudioPath(path) {
 function normalizeAudioUrl(audioUrl) {
   if (!audioUrl) return '';
 
-  const cleanUrl = String(audioUrl)
+  const cleanUrl = decodeURIComponent(String(audioUrl))
     .replace(/\\/g, '/')
-    .replace(/^\/+/, '')
     .trim();
 
-  if (cleanUrl.startsWith('http')) {
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
     return cleanUrl;
   }
 
-  return `${API}/${cleanUrl}`;
+  return `${API}/${cleanUrl.replace(/^\/+/, '')}`;
+}
+
+async function playVocabularyAudio(audioUrl) {
+  try {
+    const finalUrl = normalizeAudioUrl(audioUrl);
+
+    if (!finalUrl) {
+      alert('Esta palabra no tiene audio.');
+      return;
+    }
+
+    console.log('Audio final:', finalUrl);
+
+    const audio = new Audio(finalUrl);
+    audio.volume = 1;
+    audio.preload = 'auto';
+
+    await audio.play();
+
+  } catch (error) {
+    console.error('No se pudo reproducir el audio:', error);
+    alert('No se pudo reproducir el audio. Revisa la consola.');
+  }
 }
 
 
@@ -566,27 +606,6 @@ function getAudioUrl(audio) {
   return `${API}/${value.replace(/^\/+/, '')}`;
 }
 
-async function playVocabularyAudio(audioUrl) {
-  try {
-    const finalUrl = getAudioUrl(audioUrl);
-
-    if (!finalUrl) {
-      alert('Esta palabra no tiene audio.');
-      return;
-    }
-
-    console.log('Reproduciendo audio:', finalUrl);
-
-    const audio = new Audio(finalUrl);
-    audio.preload = 'auto';
-    audio.volume = 1;
-
-    await audio.play();
-  } catch (error) {
-    console.error('No se pudo reproducir el audio:', error);
-    alert('No se pudo reproducir el audio. Revisa la consola o la URL del audio.');
-  }
-}
 
 function playStudentAudio(encodedAudioUrl) {
   const audioUrl = decodeURIComponent(encodedAudioUrl);
